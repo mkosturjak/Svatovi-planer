@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Svatovi</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Svatovi">
+<meta name="theme-color" content="#F4ECDF">
+<style>
+:root{
+  color-scheme: light;
+  /* stranica: krem podloga, bordo tekst */
+  --bg:#F4ECDF; --surface:#FFFAF2; --fill:#E8DCC8; --fill-2:#F7F0E4;
+  --label:#5E1520; --label-2:#7D4A50; --label-3:#A5838A;
+  --sep:rgba(122,31,43,.2);
+  --accent:#7A1F2B; --accent-soft:rgba(122,31,43,.10); --on-accent:#FFF6E8;
+  --green:#2E6B3A; --orange:#9A4510; --red:#B0122A;
+  --bar:#7A1F2B;
+  --seat-empty:#E6D9C4; --table:#F3E6D2; --table-line:rgba(122,31,43,.30);
+  --serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --tabbar-h:56px;
+}
+/* bordo površine: kartice, stolovi, donja traka, popis za odabir */
+.group, .tcard, .tabbar, .toast{
+  --surface:#7A1F2B; --fill:#5F1520; --fill-2:#6A1924;
+  --label:#FFF6E8; --label-2:#EBD3CC; --label-3:#CFA9A9;
+  --sep:rgba(255,246,232,.22);
+  --accent:#F3D9A4; --accent-soft:rgba(255,246,232,.14); --on-accent:#5E1520;
+  --green:#B5E6BD; --orange:#FFD08A; --red:#FFB8B8;
+  --seat-empty:rgba(255,246,232,.22); --table:rgba(255,246,232,.10); --table-line:rgba(255,246,232,.45);
+  color:var(--label);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; background:var(--bg); color:var(--label);
+  font:17px/1.35 var(--sans); -webkit-font-smoothing:antialiased;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 24px);
+}
+button,input,select,textarea{font:inherit; color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent); outline-offset:2px; border-radius:8px}
+.wrap{max-width:720px; margin:0 auto; padding:0 16px}
+.wrap.wide{max-width:1120px}
+
+/* Naslov */
+.top{display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding:20px 0 6px}
+.top h1{font-family:var(--serif); font-weight:700; font-size:34px; line-height:1.1; margin:0; letter-spacing:-.01em}
+.actions{display:flex; gap:8px; align-items:center}
+.lede{color:var(--label-2); font-size:15px; margin:4px 0 18px}
+
+/* Gumbi */
+.btn{min-height:44px; padding:0 16px; border-radius:999px; border:0; background:var(--fill); font-weight:600; font-size:15px; display:inline-flex; align-items:center; gap:6px}
+.btn.primary{background:var(--accent); color:var(--on-accent)}
+.btn:disabled{opacity:.4; cursor:default}
+.icon-btn{width:44px; height:44px; border-radius:999px; border:0; background:var(--fill); display:inline-grid; place-items:center; color:var(--accent)}
+.icon-btn.primary{background:var(--accent); color:var(--on-accent)}
+.icon-btn svg{width:22px; height:22px}
+.link{background:none; border:0; color:var(--accent); font-weight:600; padding:0 4px; min-height:44px}
+
+/* Grupirani popisi */
+.section-h{font-size:13px; color:var(--label-2); margin:22px 16px 6px; font-weight:400}
+.group{background:var(--surface); border-radius:12px; overflow:hidden}
+.row{display:flex; align-items:center; gap:12px; width:100%; min-height:44px; padding:11px 16px; background:none; border:0; text-align:left; position:relative}
+.row + .row::before{content:""; position:absolute; top:0; left:16px; right:0; border-top:.5px solid var(--sep)}
+button.row:active{background:var(--fill)}
+.row-main{flex:1; min-width:0}
+.row-title{font-size:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.row-sub{font-size:14px; color:var(--label-2); margin-top:2px}
+.row-end{text-align:right; flex-shrink:0}
+.amt{font-variant-numeric:tabular-nums; font-size:17px}
+.rem{font-size:14px; color:var(--orange); font-variant-numeric:tabular-nums; margin-top:2px}
+.rem.done{color:var(--green)}
+.chev{color:var(--label-3); width:8px; flex-shrink:0}
+.kv{display:flex; justify-content:space-between; gap:12px; min-height:44px; align-items:center; padding:10px 16px; position:relative}
+.kv + .kv::before{content:""; position:absolute; top:0; left:16px; right:0; border-top:.5px solid var(--sep)}
+.kv span:last-child{font-variant-numeric:tabular-nums; color:var(--label-2)}
+.kv.strong span:last-child{color:var(--orange); font-weight:600}
+.kv.strong.done span:last-child{color:var(--green)}
+
+/* Napredak plaćanja */
+.ledger{padding:18px 16px 16px}
+.ledger-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap}
+.ledger-paid{font-family:var(--serif); font-size:28px; font-weight:700; font-variant-numeric:tabular-nums}
+.ledger-of{color:var(--label-2); font-size:15px}
+.meter{height:10px; border-radius:99px; background:var(--fill); margin-top:12px; overflow:hidden; display:flex}
+.meter i{display:block; height:100%}
+.meter .k{background:var(--accent)}
+.meter .p{background:var(--green)}
+.legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:13px; color:var(--label-2)}
+.legend b{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px}
+.mini{height:4px; border-radius:99px; background:var(--fill); margin-top:8px; overflow:hidden; display:flex; max-width:220px}
+.mini i{display:block; height:100%}
+.mini .k{background:var(--accent)} .mini .p{background:var(--green)}
+
+/* Prazno stanje */
+.empty{padding:28px 20px; text-align:center; color:var(--label-2)}
+.empty p{margin:0 0 14px}
+
+/* Pretraga i segmenti */
+.search{position:relative; margin:4px 0 12px}
+.search svg{position:absolute; left:10px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--label-3); pointer-events:none}
+.search input{width:100%; height:40px; border-radius:10px; border:0; background:var(--fill); padding:0 12px 0 36px; font-size:17px}
+.search input::placeholder{color:var(--label-3)}
+.seg{display:flex; background:var(--fill); border-radius:9px; padding:2px; gap:2px}
+.seg button{flex:1; border:0; background:none; border-radius:7px; min-height:34px; font-size:14px; font-weight:500; padding:0 6px}
+.seg button[aria-pressed="true"]{background:var(--surface); box-shadow:0 1px 3px rgba(60,20,20,.14); font-weight:600}
+.badge{display:inline-block; font-size:14px; padding:3px 10px; border-radius:99px; background:var(--accent-soft); color:var(--accent); font-weight:600; white-space:nowrap}
+.badge.none{background:var(--fill); color:var(--label-2); font-weight:500}
+
+/* Stolovi */
+.grid{display:grid; gap:14px; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); margin-top:6px}
+.tcard{background:var(--surface); color:var(--label); border-radius:18px; padding:14px 14px 10px; display:flex; flex-direction:column}
+.tcard.head{grid-column:1 / -1}
+.thead{display:flex; align-items:center; gap:8px}
+.tname{font-family:var(--serif); font-size:22px; font-weight:700; background:none; border:0; padding:0; text-align:left; flex:1; min-height:44px}
+.tcount{font-variant-numeric:tabular-nums; color:var(--label-2); font-size:15px}
+.tcount.full{color:var(--green); font-weight:600}
+.tcount.over{color:var(--red); font-weight:600}
+.trash{width:44px; height:44px; border:0; background:none; color:var(--red); border-radius:99px; display:grid; place-items:center}
+.trash svg{width:20px; height:20px}
+.plan{display:block; margin:2px auto 6px; width:100%; max-width:220px; height:auto}
+.tcard.head .plan{max-width:420px}
+.plan .tbl{fill:var(--table); stroke:var(--table-line); stroke-width:1.5}
+.plan .seat{fill:var(--seat-empty)}
+.plan .seat.on{fill:var(--accent)}
+.plan text{fill:var(--on-accent); font:700 9px var(--sans); text-anchor:middle; dominant-baseline:central}
+.plan .tbl-label{fill:var(--accent); font:600 12px var(--serif)}
+.seated{list-style:none; margin:0; padding:0}
+.seated li{display:flex; align-items:center; gap:8px; min-height:44px; border-top:.5px solid var(--sep); padding-left:2px}
+.seated .nm{background:none; border:0; padding:0; text-align:left; min-height:44px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.seated .sd{font-size:13px; color:var(--label-2)}
+.unseat{width:44px; height:44px; border:0; background:none; color:var(--label-3); display:grid; place-items:center; flex-shrink:0}
+.unseat svg{width:20px; height:20px}
+.tfoot{border-top:.5px solid var(--sep); padding-top:8px; margin-top:auto}
+.tcard .tfoot:first-child{border:0}
+.add-seat{width:100%; min-height:44px; border:0; border-radius:10px; background:var(--accent-soft); color:var(--accent); font-weight:600; font-size:15px}
+.full-note{color:var(--label-2); font-size:14px; text-align:center; min-height:44px; display:grid; place-items:center}
+
+.combo{display:flex; flex-direction:column; gap:6px}
+.combo-bar{display:flex; gap:8px; align-items:center}
+.combo-bar .search{flex:1; margin:0}
+.combo-list{list-style:none; margin:0; padding:0; max-height:264px; overflow:auto; border-radius:10px; background:var(--fill-2); border:.5px solid var(--sep)}
+.combo-list li{min-height:44px; display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; position:relative}
+.combo-list li + li::before{content:""; position:absolute; top:0; left:12px; right:0; border-top:.5px solid var(--sep)}
+.combo-list li[aria-selected="true"], .combo-list li:hover{background:var(--accent-soft)}
+.combo-list .nm{flex:1}
+.combo-list .sd{font-size:13px; color:var(--label-2)}
+.combo-list .info{color:var(--label-2); cursor:default; font-size:15px}
+.combo-list .info:hover{background:none}
+.combo-list .create{color:var(--accent); font-weight:600}
+
+/* Postavke */
+.field{display:block; padding:10px 16px}
+.field label, .flabel{display:block; font-size:13px; color:var(--label-2); margin-bottom:4px}
+.field input, .field textarea, .field select{width:100%; border:0; background:var(--fill); border-radius:10px; padding:10px 12px; font-size:17px; min-height:44px}
+.field textarea{resize:vertical; min-height:88px}
+.field + .field{border-top:.5px solid var(--sep)}
+.note{font-size:13px; color:var(--label-2); margin:8px 16px 0}
+.status{display:flex; align-items:center; gap:8px}
+.dot{width:10px; height:10px; border-radius:99px; background:var(--label-3); flex-shrink:0}
+.dot.ok{background:var(--green)} .dot.busy{background:var(--orange)} .dot.err{background:var(--red)}
+.version{text-align:center; color:var(--label-3); font-size:12px; margin:28px 0 0}
+
+/* Donja traka */
+.tabbar{position:fixed; left:0; right:0; bottom:0; z-index:20; background:var(--bar);
+  border-top:0; padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar-in{display:flex; max-width:560px; margin:0 auto; height:var(--tabbar-h)}
+.tab{flex:1; border:0; background:none; padding:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; text-decoration:none; color:var(--label-3); font-size:11px; font-weight:500}
+.tab svg{width:26px; height:26px}
+.tab[aria-current="page"]{color:var(--accent); font-weight:700}
+@media (prefers-reduced-transparency: reduce){ .tabbar{background:var(--surface); -webkit-backdrop-filter:none; backdrop-filter:none} }
+
+/* Sheet */
+dialog#sheet{border:0; padding:0; background:var(--bg); color:var(--label); width:100%; max-width:560px;
+  border-radius:14px; max-height:calc(100dvh - 40px); overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog#sheet::backdrop, dialog#ask::backdrop{background:rgba(60,10,18,.4)}
+@media (max-width:600px){
+  dialog#sheet{margin:auto 0 0; max-width:none; border-radius:14px 14px 0 0; max-height:calc(100dvh - env(safe-area-inset-top,0px) - 12px)}
+}
+.sheet-in{display:flex; flex-direction:column; max-height:inherit}
+.grabber{width:36px; height:5px; border-radius:3px; background:var(--label-3); opacity:.5; margin:6px auto 0}
+.sheet-bar{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:2px 8px; min-height:52px}
+.sheet-bar h2{margin:0; font-size:17px; font-weight:600; text-align:center}
+.sheet-bar .link:last-child{justify-self:end}
+.sheet-bar .link:first-child{justify-self:start; font-weight:400}
+.sheet-body{overflow:auto; padding:4px 16px calc(20px + env(safe-area-inset-bottom,0px))}
+.sheet-body .group{margin-top:8px}
+.danger{width:100%; min-height:44px; margin-top:22px; border:1.5px solid var(--red); border-radius:12px; background:none; color:var(--red); font-weight:600}
+.danger.armed{background:var(--red); color:#FFF6E8}
+.calc{display:flex; justify-content:space-between; padding:12px 16px; font-variant-numeric:tabular-nums}
+.calc b{color:var(--orange)} .calc b.done{color:var(--green)}
+
+.amt.muted{color:var(--accent); font-size:15px; font-weight:600}
+.struck{text-decoration:line-through; color:var(--label-2)}
+.back{display:block; margin-top:8px; font-weight:400; font-size:17px}
+.tab{font-size:10px}
+.tabbar .tab svg{opacity:.95}
+dialog#ask{border:0; border-radius:16px; padding:0; width:min(320px, calc(100% - 48px)); background:var(--surface); color:var(--label); box-shadow:0 20px 60px rgba(60,10,18,.35)}
+.ask-in{padding:20px 20px 8px; text-align:center}
+.ask-in h2{font-size:17px; margin:0 0 6px}
+.ask-in p{margin:0; font-size:15px; color:var(--label-2)}
+.ask-in input{width:100%; margin-top:12px; border:0; background:var(--fill); border-radius:10px; padding:10px 12px; font-size:17px; min-height:44px}
+.ask-btns{display:flex; border-top:.5px solid var(--sep); margin-top:16px}
+.ask-btns button{flex:1; min-height:48px; border:0; background:none; font-size:17px; color:var(--accent)}
+.ask-btns button + button{border-left:.5px solid var(--sep); font-weight:600}
+.ask-btns .del{color:var(--red)}
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 14px); z-index:30;
+  background:var(--surface); color:var(--label); padding:12px 18px; border-radius:14px; font-size:15px; max-width:calc(100% - 32px); box-shadow:0 8px 24px rgba(60,10,18,.3)}
+.group .seg button[aria-pressed="true"]{background:var(--accent); color:var(--on-accent)}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+@media (prefers-reduced-motion: no-preference){
+  dialog#sheet[open]{animation:up .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes up{from{transform:translateY(24px); opacity:0}}
+}
+</style>
+</head>
+<body>
+<main id="app" class="wrap"></main>
+
+<nav class="tabbar" aria-label="Glavni izbornik">
+  <div class="tabbar-in">
+    <button type="button" class="tab" data-tab="troskovi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 6.5A7 7 0 1 0 17.5 17.5"/><path d="M4 10.5h9M4 13.5h9"/></svg>
+      Troškovi</button>
+    <button type="button" class="tab" data-tab="gosti">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M17 14.6c2.4.2 4 1.7 4.5 4.4"/></svg>
+      Gosti</button>
+    <button type="button" class="tab" data-tab="stolovi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="3.5" r="1.6"/><circle cx="12" cy="20.5" r="1.6"/><circle cx="3.5" cy="12" r="1.6"/><circle cx="20.5" cy="12" r="1.6"/><circle cx="6" cy="6" r="1.6"/><circle cx="18" cy="18" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="18" r="1.6"/></svg>
+      Stolovi</button>
+    <button type="button" class="tab" data-tab="pjesme">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5.5l11-2.5V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/><path d="M9 9.5l11-2.5"/></svg>
+      Pjesme</button>
+    <button type="button" class="tab" data-tab="pokloni">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8" width="17" height="4.5" rx="1"/><path d="M5 12.5V20h14v-7.5M12 8v12M12 8c-1.5-3.5-5.5-4-5.5-1.5S10 8 12 8zm0 0c1.5-3.5 5.5-4 5.5-1.5S14 8 12 8z"/></svg>
+      Pokloni</button>
+  </div>
+</nav>
+
+<dialog id="sheet" aria-labelledby="sheet-title"></dialog>
+<dialog id="ask" aria-labelledby="ask-title"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* ============ Podaci (local-first, vidi ARHITEKTURA.md) ============ */
+const KEY = 'svatovi-v1';
+const URL_KEY = 'svatovi-sheets-url';
+const VERZIJA = 'v.7.11d';
+
+const KINDS = {
+  troskovi: ['naziv','cijena','kapara','placeno','napomena'],
+  gosti:    ['ime','strana','stol','napomena','poklon'],
+  stolovi:  ['naziv','mjesta','mladenacki','redoslijed'],
+  pjesme:   ['naslov','izvodjac','trenutak','napomena']
+};
+const TRENUCI = ['Ulazak mladenaca','Prvi ples','Rezanje torte','Bacanje buketa','Za ples','Ne puštati'];
+const STRANE = ['Mladenka','Mladoženja','Zajednički'];
+
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (d && d.troskovi){ for (const k in KINDS) d[k] = d[k] || {}; return d; }
+  }catch(e){}
+  return {troskovi:{}, gosti:{}, stolovi:{}, pjesme:{}, dirty:{}, base:0};
+}
+let data = load();
+let sheetUrl = localStorage.getItem(URL_KEY) || '';
+let timer = null, pushing = false, again = false;
+let sync = {state: sheetUrl ? 'idle' : 'off', msg:'', at:null};
+
+function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} }
+
+function change(kind, id, value){
+  if (value == null) delete data[kind][id];
+  else data[kind][id] = value;
+  data.dirty[kind + ':' + id] = true;
+  persist();
+  clearTimeout(timer);
+  timer = setTimeout(push, 1500);
+}
+
+const toRows = kind => Object.entries(data[kind]).map(([id, v]) => [id, ...KINDS[kind].map(c => v[c] ?? '')]);
+const fromRows = (kind, rows) => Object.fromEntries((rows || []).filter(r => r[0]).map(r =>
+  [String(r[0]), Object.fromEntries(KINDS[kind].map((c, i) => [c, String(r[i + 1] ?? '')]))]));
+
+function merge(out){
+  for (const kind in KINDS){
+    if (!Array.isArray(out[kind])) continue;   // stara skripta bez tog lista: ne briši lokalne podatke
+    const remote = fromRows(kind, out[kind]);
+    for (const key in data.dirty){
+      const [k, id] = splitKey(key);
+      if (k !== kind) continue;
+      if (data[kind][id]) remote[id] = data[kind][id]; else delete remote[id];
+    }
+    data[kind] = remote;
+  }
+  data.base = out.updated;
+  persist();
+  renderSafe();
+}
+function splitKey(key){ const i = key.indexOf(':'); return [key.slice(0, i), key.slice(i + 1)]; }
+
+function setSync(state, msg){ sync = {state, msg: msg || '', at: state === 'ok' ? new Date() : sync.at}; if (route() === 'postavke') renderSafe(); }
+
+async function push(){
+  if (!sheetUrl) return;
+  if (pushing){ again = true; return; }
+  if (!Object.keys(data.dirty).length) return;
+  pushing = true; setSync('busy', 'Spremanje…');
+  try{
+    for (let i = 0; i < 3; i++){
+      const sent = {...data.dirty};
+      const body = {base: data.base};
+      for (const kind in KINDS) body[kind] = toRows(kind);
+      const res = await fetch(sheetUrl, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body)});
+      const out = await res.json();
+      if (out.ok){
+        data.base = out.updated;
+        for (const k in sent) delete data.dirty[k];
+        persist(); setSync('ok'); return;
+      }
+      if (out.conflict){ merge(out); continue; }
+      throw new Error(out.error || 'Nepoznata greška skripte');
+    }
+    throw new Error('Tablicu istovremeno mijenja drugi uređaj. Pokušat ću ponovno.');
+  }catch(e){
+    setSync(navigator.onLine ? 'err' : 'off-net', navigator.onLine ? String(e.message || e) : 'Nema interneta. Promjene su spremljene na uređaju i poslat će se kad se veza vrati.');
+  }finally{
+    pushing = false;
+    if (again){ again = false; push(); }
+  }
+}
+
+async function pull(){
+  if (!sheetUrl) return;
+  try{
+    setSync('busy', 'Učitavanje…');
+    const out = await (await fetch(sheetUrl)).json();
+    if (!out.ok) throw new Error(out.error || 'Skripta je vratila grešku');
+    if (out.updated > data.base) merge(out);
+    if (!Array.isArray(out.pjesme)){ setSync('err', 'Skripta u tablici je stara verzija. Zalijepi novi Code.gs i objavi ga kao novu verziju (Upravljaj implementacijama → ✏️ → Nova verzija).'); return; }
+    if (Object.keys(data.dirty).length) await push(); else setSync('ok');
+  }catch(e){
+    setSync(navigator.onLine ? 'err' : 'off-net', navigator.onLine ? 'Tablica se ne može učitati. Provjeri link skripte.' : 'Nema interneta. Radiš na lokalnoj kopiji.');
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && timer){ clearTimeout(timer); timer = null; push(); }
+  if (document.visibilityState === 'visible') pull();
+});
+addEventListener('online', pull);
+setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 60000);
+
+/* ============ Pomoćne funkcije ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s || '').replace(/[đĐ]/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const coll = new Intl.Collator('hr', {sensitivity:'base'});
+const eur = new Intl.NumberFormat('hr-HR', {style:'currency', currency:'EUR', minimumFractionDigits:0, maximumFractionDigits:2});
+const eur2 = new Intl.NumberFormat('hr-HR', {style:'currency', currency:'EUR', minimumFractionDigits:2, maximumFractionDigits:2});
+const money = n => (Math.round((n || 0) * 100) % 100 ? eur2 : eur).format(n || 0);
+
+function num(s){
+  s = String(s ?? '').replace(/[\s€]/g, '');
+  if (!s) return 0;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  const n = parseFloat(s);
+  return isFinite(n) ? Math.round(n * 100) / 100 : 0;
+}
+const numStr = n => n ? String(n) : '';
+const inputNum = s => { const n = num(s); return n ? String(n).replace('.', ',') : ''; };
+
+function plural(n, one, few, many){
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+}
+const nGosti = n => n + ' ' + plural(n, 'gost', 'gosta', 'gostiju');
+
+const ICON = {
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor" opacity=".16" stroke="none"/><path d="m9 9 6 6M15 9l-6 6"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>',
+  share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg>',
+  chev:'<svg class="chev" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m1 1 6 6-6 6"/></svg>'
+};
+
+/* ============ Stolovi: pomoćne ============ */
+function ensureMladenacki(){
+  const has = Object.values(data.stolovi).some(t => t.mladenacki === 'da');
+  if (!has) change('stolovi', 'mladenacki', {naziv:'', mjesta:'6', mladenacki:'da', redoslijed:'0'});
+}
+function tables(){
+  return Object.entries(data.stolovi).map(([id, t]) => ({id, ...t}))
+    .sort((a, b) => (b.mladenacki === 'da') - (a.mladenacki === 'da') || num(a.redoslijed) - num(b.redoslijed) || a.id.localeCompare(b.id));
+}
+function tableLabels(){
+  const map = {}; let n = 0;
+  for (const t of tables()){
+    if (t.mladenacki === 'da') map[t.id] = t.naziv || 'Mladenački stol';
+    else { n++; map[t.id] = t.naziv || 'Stol ' + n; }
+  }
+  return map;
+}
+const guestList = () => Object.entries(data.gosti).map(([id, g]) => ({id, ...g})).sort((a, b) => coll.compare(a.ime, b.ime));
+const seatedAt = tid => guestList().filter(g => g.stol === tid);
+const isSeated = g => !!(g.stol && data.stolovi[g.stol]);
+const capacity = t => Math.max(1, Math.round(num(t.mjesta)) || 10);
+function initials(name){
+  const p = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+}
+
+/* ============ Navigacija ============ */
+const ROUTES = ['troskovi','gosti','stolovi','pjesme','pokloni','postavke'];
+let prevRoute = 'troskovi';
+// Trenutni ekran se čuva u varijabli; #hash je samo dodatak (u nekim ugrađenim pregledima ne radi).
+const hashRoute = () => { try{ const h = location.hash.slice(1); return ROUTES.includes(h) ? h : null; }catch(e){ return null; } };
+let current = hashRoute() || 'troskovi';
+function route(){ return current; }
+function go(r){
+  if (!ROUTES.includes(r)) return;
+  openCombo = null; if (r === 'postavke' && current !== 'postavke') prevRoute = current; current = r;
+  try{ if (location.hash !== '#' + r) location.hash = r; }catch(e){}
+  render(); try{ scrollTo(0, 0); }catch(e){}
+}
+addEventListener('hashchange', () => { const h = hashRoute(); if (h && h !== current) go(h); });
+document.querySelector('.tabbar').addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]'); if (t){ e.preventDefault(); go(t.dataset.tab); }
+});
+
+let pendingRender = false;
+function typing(){
+  const a = document.activeElement;
+  return a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+}
+function renderSafe(){
+  if (typing() || $('#sheet').open){ pendingRender = true; return; }
+  render();
+}
+document.addEventListener('focusout', () => setTimeout(() => {
+  if (pendingRender && !typing() && !$('#sheet').open){ pendingRender = false; render(); }
+}, 0));
+
+function render(){
+  const r = route();
+  document.querySelectorAll('.tab').forEach(a => { if (a.dataset.tab === r) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  const app = $('#app');
+  app.classList.toggle('wide', r === 'stolovi');
+  app.innerHTML = ({troskovi: viewTroskovi, gosti: viewGosti, stolovi: viewStolovi, pjesme: viewPjesme, pokloni: viewPokloni, postavke: viewPostavke})[r]();
+  if (r === 'gosti') fillGuestList();
+  if (r === 'pokloni') fillGiftList();
+  if (r === 'stolovi' && openCombo) fillCombo(false);
+  document.title = ({troskovi:'Troškovi', gosti:'Gosti', stolovi:'Stolovi', pjesme:'Pjesme', pokloni:'Pokloni', postavke:'Postavke'})[r] + ' · Svatovi';
+}
+
+/* ============ Troškovi ============ */
+function costCalc(t){
+  const cijena = num(t.cijena), kapara = num(t.kapara), placeno = num(t.placeno);
+  return {cijena, kapara, placeno, ostaje: Math.max(0, cijena - kapara - placeno)};
+}
+function bar(cls, c){
+  const tot = Math.max(c.cijena, c.kapara + c.placeno) || 1;
+  return `<div class="${cls}" aria-hidden="true"><i class="k" style="width:${c.kapara / tot * 100}%"></i><i class="p" style="width:${c.placeno / tot * 100}%"></i></div>`;
+}
+function viewTroskovi(){
+  const items = Object.entries(data.troskovi).map(([id, t]) => ({id, ...t, c: costCalc(t)})).sort((a, b) => a.id.localeCompare(b.id));
+  const S = items.reduce((s, x) => ({cijena: s.cijena + x.c.cijena, kapara: s.kapara + x.c.kapara, placeno: s.placeno + x.c.placeno, ostaje: s.ostaje + x.c.ostaje}), {cijena:0, kapara:0, placeno:0, ostaje:0});
+  const nG = Object.keys(data.gosti).length;
+  const head = `<header class="top"><h1>Troškovi</h1><div class="actions">
+    <button class="icon-btn" data-action="open-settings" aria-label="Postavke">${ICON.gear}</button>
+    <button class="icon-btn primary" data-action="cost-new" aria-label="Dodaj trošak">${ICON.plus}</button></div></header>`;
+  if (!items.length) return head + `<p class="lede">Sve što svatovi koštaju, na jednom mjestu.</p>
+    <div class="group empty"><p>Još nema troškova. Dodaj salu, bend, fotografa, cvijeće…</p>
+    <button class="btn primary" data-action="cost-new">${ICON.plus.replace('<svg', '<svg width="18" height="18"')} Dodaj trošak</button></div>`;
+  const pct = S.cijena ? Math.round((S.kapara + S.placeno) / S.cijena * 100) : 0;
+  return head + `<p class="lede">${items.length} ${plural(items.length,'stavka','stavke','stavki')}, plaćeno ${pct} %</p>
+  <section class="group" aria-label="Sažetak">
+    <div class="ledger">
+      <div class="ledger-top"><span class="ledger-paid">${money(S.kapara + S.placeno)}</span><span class="ledger-of">plaćeno od ${money(S.cijena)}</span></div>
+      ${bar('meter', S)}
+      <div class="legend"><span><b style="background:var(--accent)"></b>Kapare</span><span><b style="background:var(--green)"></b>Plaćeno</span><span><b style="background:var(--fill)"></b>Ostaje</span></div>
+    </div>
+    <div class="kv"><span>Ukupna cijena</span><span>${money(S.cijena)}</span></div>
+    <div class="kv"><span>Dano kapare</span><span>${money(S.kapara)}</span></div>
+    <div class="kv"><span>Plaćeno (bez kapare)</span><span>${money(S.placeno)}</span></div>
+    <div class="kv strong ${S.ostaje ? '' : 'done'}"><span>Ostaje za platiti</span><span>${money(S.ostaje)}</span></div>
+    ${nG ? `<div class="kv"><span>Po gostu (${nGosti(nG)})</span><span>${money(S.cijena / nG)}</span></div>` : ''}
+  </section>
+  <h2 class="section-h">Stavke</h2>
+  <div class="group">${items.map(x => `
+    <button class="row" data-action="cost-edit" data-id="${esc(x.id)}">
+      <div class="row-main">
+        <div class="row-title">${esc(x.naziv || 'Bez naziva')}</div>
+        <div class="row-sub">${[x.c.kapara ? 'Kapara ' + money(x.c.kapara) : '', x.c.placeno ? 'Plaćeno ' + money(x.c.placeno) : '', x.napomena ? esc(x.napomena) : ''].filter(Boolean).join(', ') || 'Ništa još nije plaćeno'}</div>
+        ${x.c.cijena ? bar('mini', x.c) : ''}
+      </div>
+      <div class="row-end"><div class="amt">${money(x.c.cijena)}</div>
+        <div class="rem ${x.c.ostaje ? '' : 'done'}">${x.c.ostaje ? 'ostaje ' + money(x.c.ostaje) : 'Plaćeno'}</div></div>
+      ${ICON.chev}
+    </button>`).join('')}</div>`;
+}
+
+function costSheet(id){
+  const t = id ? data.troskovi[id] : {naziv:'', cijena:'', kapara:'', placeno:'', napomena:''};
+  openSheet({
+    title: id ? 'Uredi trošak' : 'Novi trošak',
+    body: `<div class="group">
+      <div class="field"><label for="f-naziv">Naziv</label><input id="f-naziv" name="naziv" value="${esc(t.naziv)}" placeholder="npr. Sala, Bend, Fotograf" autocomplete="off" required></div>
+      <div class="field"><label for="f-cijena">Ukupna cijena (€)</label><input id="f-cijena" name="cijena" inputmode="decimal" value="${esc(inputNum(t.cijena))}" placeholder="0"></div>
+      <div class="field"><label for="f-kapara">Kapara (€)</label><input id="f-kapara" name="kapara" inputmode="decimal" value="${esc(inputNum(t.kapara))}" placeholder="0"></div>
+      <div class="field"><label for="f-placeno">Plaćeno osim kapare (€)</label><input id="f-placeno" name="placeno" inputmode="decimal" value="${esc(inputNum(t.placeno))}" placeholder="0"></div>
+      <div class="calc" aria-live="polite"><span>Ostaje za platiti</span><b id="f-ostaje"></b></div>
+    </div>
+    <div class="group"><div class="field"><label for="f-nap">Napomena</label><textarea id="f-nap" name="napomena" rows="2" placeholder="Rok plaćanja, kontakt, broj računa…">${esc(t.napomena)}</textarea></div></div>`,
+    onOpen(form){
+      const upd = () => { const c = costCalc({cijena: form.cijena.value, kapara: form.kapara.value, placeno: form.placeno.value});
+        const b = form.querySelector('#f-ostaje'); b.textContent = money(c.ostaje); b.className = c.ostaje ? '' : 'done'; };
+      form.addEventListener('input', upd); upd();
+    },
+    onSave(form){
+      const naziv = form.naziv.value.trim();
+      if (!naziv){ form.naziv.focus(); return false; }
+      change('troskovi', id || uid(), {naziv, cijena: numStr(num(form.cijena.value)), kapara: numStr(num(form.kapara.value)), placeno: numStr(num(form.placeno.value)), napomena: form.napomena.value.trim()});
+    },
+    deleteLabel: `Potvrdi brisanje: ${t.naziv}`,
+    onDelete: id ? () => { change('troskovi', id, null); toast('Trošak je obrisan.'); } : null
+  });
+}
+
+/* ============ Gosti ============ */
+let gQuery = '', gFilter = 'svi';
+function viewGosti(){
+  const all = guestList(); const seated = all.filter(isSeated).length;
+  const head = `<header class="top"><h1>Gosti</h1><div class="actions">
+    <button class="icon-btn" data-action="open-settings" aria-label="Postavke">${ICON.gear}</button>
+    <button class="icon-btn primary" data-action="guest-new" aria-label="Dodaj goste">${ICON.plus}</button></div></header>`;
+  if (!all.length) return head + `<p class="lede">Popis svih koji dolaze na svatove.</p>
+    <div class="group empty"><p>Popis je prazan. Goste možeš upisati jednog po jednog ili zalijepiti cijeli popis odjednom.</p>
+    <button class="btn primary" data-action="guest-new">Dodaj goste</button></div>`;
+  const side = s => all.filter(g => g.strana === s).length;
+  return head + `<p class="lede">${nGosti(all.length)}: ${side('Mladenka')} mladenkinih, ${side('Mladoženja')} mladoženjinih, ${side('Zajednički')} zajedničkih</p>
+  <div class="search">${ICON.search}<input type="search" id="g-search" placeholder="Traži po imenu" value="${esc(gQuery)}" autocomplete="off" aria-label="Traži goste"></div>
+  <div class="seg" role="group" aria-label="Filtar">
+    ${[['svi','Svi', all.length],['bez','Bez stola', all.length - seated],['za','Za stolom', seated]].map(([k, l, n]) =>
+      `<button data-action="gfilter" data-v="${k}" aria-pressed="${gFilter === k}">${l} (${n})</button>`).join('')}
+  </div>
+  <div id="g-list" style="margin-top:12px"></div>`;
+}
+function fillGuestList(){
+  const el = $('#g-list'); if (!el) return;
+  const labels = tableLabels(); const q = norm(gQuery);
+  const list = guestList().filter(g =>
+    (gFilter === 'svi' || (gFilter === 'bez') === !isSeated(g)) && (!q || norm(g.ime).includes(q)));
+  el.innerHTML = list.length ? `<div class="group">${list.map(g => `
+    <button class="row" data-action="guest-edit" data-id="${esc(g.id)}">
+      <div class="row-main"><div class="row-title">${esc(g.ime)}</div><div class="row-sub">${esc([g.strana, g.napomena].filter(Boolean).join(', ') || 'Bez napomene')}</div></div>
+      <span class="badge ${isSeated(g) ? '' : 'none'}">${isSeated(g) ? esc(labels[g.stol]) : 'Bez stola'}</span>
+      ${ICON.chev}
+    </button>`).join('')}</div>`
+    : `<div class="group empty"><p>${q ? `Nema gosta koji odgovara „${esc(gQuery)}”.` : gFilter === 'bez' ? 'Svi gosti imaju mjesto za stolom.' : 'Još nitko nije raspoređen za stol.'}</p></div>`;
+}
+
+function segHtml(name, opts, val){
+  return `<div class="seg" role="radiogroup">${opts.map(o =>
+    `<button type="button" data-seg="${name}" data-v="${esc(o)}" aria-pressed="${o === val}">${esc(o)}</button>`).join('')}</div>
+    <input type="hidden" name="${name}" value="${esc(val)}">`;
+}
+function guestSheet(id){
+  const g = id ? data.gosti[id] : {ime:'', strana:'Zajednički', stol:'', napomena:'', poklon:''};
+  const labels = tableLabels();
+  const opts = tables().map(t => {
+    const free = capacity(t) - seatedAt(t.id).length;
+    const mine = id && g.stol === t.id;
+    if (free <= 0 && !mine) return '';
+    return `<option value="${esc(t.id)}" ${mine ? 'selected' : ''}>${esc(labels[t.id])}${mine ? '' : ` (${free} ${plural(free,'slobodno mjesto','slobodna mjesta','slobodnih mjesta')})`}</option>`;
+  }).join('');
+  openSheet({
+    title: id ? 'Uredi gosta' : 'Novi gosti',
+    body: `<div class="group">
+      ${id
+        ? `<div class="field"><label for="f-ime">Ime i prezime</label><input id="f-ime" name="ime" value="${esc(g.ime)}" autocomplete="off" required></div>`
+        : `<div class="field"><label for="f-ime">Ime i prezime</label><textarea id="f-ime" name="ime" rows="4" placeholder="Ana Horvat&#10;Marko Kovač&#10;…" required></textarea></div>`}
+      <div class="field"><span class="flabel">Strana</span>${segHtml('strana', STRANE, g.strana || 'Zajednički')}</div>
+      <div class="field"><label for="f-stol">Stol</label><select id="f-stol" name="stol"><option value="">Bez stola</option>${opts}</select></div>
+    </div>
+    ${id ? '' : '<p class="note">Za više gostiju odjednom upiši ili zalijepi svako ime u novi red.</p>'}
+    <div class="group"><div class="field"><label for="f-nap">Napomena</label><input id="f-nap" name="napomena" value="${esc(g.napomena)}" placeholder="npr. vegetarijanac, dijete, +1" autocomplete="off"></div>
+    ${id ? `<div class="field"><label for="f-pok">Poklon (€)</label><input id="f-pok" name="poklon" inputmode="decimal" value="${esc(inputNum(g.poklon))}" placeholder="0"></div>` : ''}</div>`,
+    onSave(form){
+      const names = form.ime.value.split('\n').map(s => s.trim()).filter(Boolean);
+      if (!names.length){ form.ime.focus(); return false; }
+      let stol = form.stol.value;
+      const base = {strana: form.strana.value, napomena: form.napomena.value.trim()};
+      if (id){ change('gosti', id, {...g, ...base, ime: names.join(' '), stol, poklon: numStr(num(form.poklon.value))}); return; }
+      let free = stol ? capacity(data.stolovi[stol]) - seatedAt(stol).length : 0;
+      names.forEach(ime => { change('gosti', uid(), {...base, poklon:'', ime, stol: stol && free-- > 0 ? stol : ''}); });
+    },
+    deleteLabel: `Potvrdi brisanje: ${g.ime}`,
+    onDelete: id ? () => { change('gosti', id, null); toast(`${g.ime} je obrisan/a s popisa.`); } : null
+  });
+}
+
+/* ============ Stolovi ============ */
+let openCombo = null, comboQuery = '', comboIdx = 0;
+function planSvg(t, people){
+  const n = Math.max(capacity(t), people.length);
+  const seat = (x, y, i) => {
+    const p = people[i];
+    return `<circle class="seat ${p ? 'on' : ''}" cx="${x}" cy="${y}" r="11"/>${p ? `<text x="${x}" y="${y}">${esc(initials(p.ime))}</text>` : ''}`;
+  };
+  if (t.mladenacki === 'da'){
+    const W = 300, step = (W - 40) / n; let s = '';
+    for (let i = 0; i < n; i++) s += seat(20 + step * (i + .5), 20, i);
+    return `<svg class="plan" viewBox="0 0 ${W} 78" aria-hidden="true"><rect class="tbl" x="16" y="40" width="${W - 32}" height="30" rx="8"/><text class="tbl-label" x="${W / 2}" y="55">mladenci</text>${s}</svg>`;
+  }
+  let s = '';
+  for (let i = 0; i < n; i++){
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    s += seat((80 + 64 * Math.cos(a)).toFixed(1), (80 + 64 * Math.sin(a)).toFixed(1), i);
+  }
+  return `<svg class="plan" viewBox="0 0 160 160" aria-hidden="true"><circle class="tbl" cx="80" cy="80" r="44"/>${s}</svg>`;
+}
+function viewStolovi(){
+  const ts = tables(); const labels = tableLabels(); const all = guestList();
+  const regular = ts.filter(t => t.mladenacki !== 'da');
+  const seats = ts.reduce((s, t) => s + capacity(t), 0);
+  const seated = all.filter(isSeated).length;
+  const unseated = all.length - seated;
+  return `<header class="top"><h1>Stolovi</h1><div class="actions">
+      <button class="btn" data-action="table-remove-last" ${regular.length ? '' : 'disabled'}>Makni stol</button>
+      <button class="btn primary" data-action="table-add">${ICON.plus.replace('<svg', '<svg width="18" height="18"')} Dodaj stol</button>
+    </div></header>
+  <p class="lede">${ts.length} ${plural(ts.length,'stol','stola','stolova')}, ${seats} mjesta, ${seated} zauzeto. ${unseated ? `${nGosti(unseated)} još bez stola.` : all.length ? 'Svi gosti imaju mjesto.' : 'Prvo dodaj goste u popis.'}${seated + unseated > seats ? ` Treba još ${Math.ceil((seated + unseated - seats) / 10)} ${plural(Math.ceil((seated + unseated - seats) / 10),'stol','stola','stolova')}.` : ''}</p>
+  <div class="grid">${ts.map(t => tableCard(t, labels[t.id])).join('')}</div>`;
+}
+function tableCard(t, label){
+  const people = seatedAt(t.id); const cap = capacity(t);
+  const head = t.mladenacki === 'da';
+  const cls = people.length > cap ? 'over' : people.length === cap ? 'full' : '';
+  let foot;
+  if (people.length >= cap) foot = `<div class="full-note">Stol je pun.</div>`;
+  else if (openCombo === t.id) foot = `<div class="combo">
+      <div class="combo-bar"><div class="search">${ICON.search}<input type="search" class="combo-input" data-table="${esc(t.id)}" value="${esc(comboQuery)}" placeholder="Traži gosta" autocomplete="off" role="combobox" aria-expanded="true" aria-controls="cl-${esc(t.id)}" aria-autocomplete="list" aria-label="Traži gosta za ${esc(label)}"></div>
+      <button class="link" data-action="seat-close">Gotovo</button></div>
+      <ul class="combo-list" id="cl-${esc(t.id)}" role="listbox" aria-label="Gosti bez stola"></ul></div>`;
+  else foot = `<button class="add-seat" data-action="seat-open" data-table="${esc(t.id)}">Dodaj gosta za stol</button>`;
+  return `<article class="tcard ${head ? 'head' : ''}" aria-label="${esc(label)}">
+    <div class="thead">
+      <button class="tname" data-action="table-rename" data-table="${esc(t.id)}" aria-label="${esc(label)}, preimenuj">${esc(label)}</button>
+      <span class="tcount ${cls}" aria-label="${people.length} od ${cap} mjesta zauzeto">${people.length}/${cap}</span>
+      ${head ? '' : `<button class="trash" data-action="table-remove" data-table="${esc(t.id)}" aria-label="Makni ${esc(label)}">${ICON.trash}</button>`}
+    </div>
+    ${planSvg(t, people)}
+    ${people.length ? `<ul class="seated">${people.map(p => `<li><button class="nm" data-action="guest-edit" data-id="${esc(p.id)}" aria-label="Uredi ${esc(p.ime)}">${esc(p.ime)} <span class="sd">${esc(p.strana || '')}</span></button>
+      <button class="unseat" data-action="unseat" data-id="${esc(p.id)}" aria-label="Makni ${esc(p.ime)} sa stola">${ICON.x}</button></li>`).join('')}</ul>` : ''}
+    <div class="tfoot">${foot}</div>
+  </article>`;
+}
+function comboMatches(){
+  const q = norm(comboQuery);
+  return guestList().filter(g => !isSeated(g) && (!q || norm(g.ime).includes(q)));
+}
+function fillCombo(focus){
+  const ul = document.getElementById('cl-' + openCombo); if (!ul) return;
+  const list = comboMatches();
+  if (comboIdx >= list.length) comboIdx = 0;
+  let html = list.slice(0, 200).map((g, i) => `<li role="option" id="opt-${esc(g.id)}" data-pick="${esc(g.id)}" aria-selected="${i === comboIdx}"><span class="nm">${esc(g.ime)}</span><span class="sd">${esc(g.strana || '')}</span></li>`).join('');
+  if (comboQuery.trim() && !list.some(g => norm(g.ime) === norm(comboQuery)))
+    html += `<li role="option" class="create" data-create="1" aria-selected="${!list.length}">Dodaj novog gosta „${esc(comboQuery.trim())}”</li>`;
+  if (!html) html = `<li class="info" role="presentation">${Object.keys(data.gosti).length ? 'Svi gosti već imaju mjesto za stolom.' : 'Popis gostiju je prazan.'}</li>`;
+  ul.innerHTML = html;
+  const inp = document.querySelector('.combo-input');
+  const sel = ul.querySelector('[aria-selected="true"]');
+  if (inp){ if (sel && sel.id) inp.setAttribute('aria-activedescendant', sel.id); else inp.removeAttribute('aria-activedescendant'); }
+  if (focus && inp){ inp.focus({preventScroll:true}); }
+}
+function seatGuest(gid){
+  const tid = openCombo; const t = data.stolovi[tid]; if (!t) return;
+  if (seatedAt(tid).length >= capacity(t)) return;
+  change('gosti', gid, {...data.gosti[gid], stol: tid});
+  afterSeat(tid);
+}
+function createAndSeat(){
+  const ime = comboQuery.trim(); const tid = openCombo; if (!ime || !data.stolovi[tid]) return;
+  change('gosti', uid(), {ime, strana:'Zajednički', stol: tid, napomena:'', poklon:''});
+  afterSeat(tid);
+}
+function afterSeat(tid){
+  comboQuery = ''; comboIdx = 0;
+  const full = seatedAt(tid).length >= capacity(data.stolovi[tid]);
+  if (full || !comboMatches().length) openCombo = full ? null : openCombo;
+  render();
+  if (openCombo) fillCombo(true);
+}
+function addTable(){
+  const max = tables().reduce((m, t) => Math.max(m, num(t.redoslijed)), 0);
+  const id = uid();
+  change('stolovi', id, {naziv:'', mjesta:'10', mladenacki:'', redoslijed: String(max + 1)});
+  render();
+  const cards = document.querySelectorAll('.tcard'); cards[cards.length - 1]?.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'center'});
+}
+async function removeTable(tid){
+  const t = data.stolovi[tid]; if (!t || t.mladenacki === 'da') return;
+  const label = tableLabels()[tid]; const people = seatedAt(tid);
+  if (people.length && !(await ask({title:`Maknuti ${label}?`, message:`Za stolom sjedi ${nGosti(people.length)}. Vratit će se na popis bez stola.`, ok:'Makni stol', danger:true}))) return;
+  people.forEach(p => change('gosti', p.id, {...data.gosti[p.id], stol:''}));
+  change('stolovi', tid, null);
+  if (openCombo === tid) openCombo = null;
+  render();
+}
+async function renameTable(tid){
+  const t = data.stolovi[tid]; if (!t) return;
+  const cur = tableLabels()[tid];
+  const v = await ask({title:'Naziv stola', message:'Ostavi prazno za automatski broj.', ok:'Spremi', input: t.naziv || cur});
+  if (v === null) return;
+  const naziv = v.trim() === cur && !t.naziv ? '' : v.trim();
+  change('stolovi', tid, {...t, naziv});
+  render();
+}
+
+
+/* ============ Pjesme ============ */
+function songsByMoment(){
+  const all = Object.entries(data.pjesme).map(([id, p]) => ({id, ...p})).sort((a, b) => a.id.localeCompare(b.id));
+  const groups = TRENUCI.map(t => ({t, items: all.filter(p => (TRENUCI.includes(p.trenutak) ? p.trenutak : 'Za ples') === t)}));
+  return {all, groups: groups.filter(g => g.items.length)};
+}
+function viewPjesme(){
+  const {all, groups} = songsByMoment();
+  const playable = all.filter(p => p.trenutak !== 'Ne puštati').length;
+  const head = `<header class="top"><h1>Pjesme</h1><div class="actions">
+    ${GEAR_BTN()}
+    ${all.length ? `<button class="icon-btn" data-action="song-share" aria-label="Pošalji popis DJ-u">${ICON.share}</button>` : ''}
+    <button class="icon-btn primary" data-action="song-new" aria-label="Dodaj pjesmu">${ICON.plus}</button></div></header>`;
+  if (!all.length) return head + `<p class="lede">Popis pjesama za DJ-a: za ulazak, prvi ples, tortu i ples.</p>
+    <div class="group empty"><p>Još nema pjesama. Dodaj pjesmu za prvi ples ili one koje DJ nikako ne smije pustiti.</p>
+    <button class="btn primary" data-action="song-new">Dodaj pjesmu</button></div>`;
+  return head + `<p class="lede">${playable} ${plural(playable,'pjesma','pjesme','pjesama')} za DJ-a${all.length - playable ? `, ${all.length - playable} na popisu „ne puštati”` : ''}</p>
+  ${groups.map(g => `<h2 class="section-h">${esc(g.t)} (${g.items.length})</h2>
+  <div class="group">${g.items.map(p => `
+    <button class="row" data-action="song-edit" data-id="${esc(p.id)}">
+      <div class="row-main"><div class="row-title ${g.t === 'Ne puštati' ? 'struck' : ''}">${esc(p.naslov)}</div>
+      <div class="row-sub">${esc([p.izvodjac, p.napomena].filter(Boolean).join(', ') || 'Izvođač nije upisan')}</div></div>
+      ${ICON.chev}
+    </button>`).join('')}</div>`).join('')}
+  <button class="btn" style="margin-top:18px; width:100%; justify-content:center" data-action="song-share">${ICON.share.replace('<svg', '<svg width="18" height="18"')} Pošalji popis DJ-u</button>`;
+}
+function songText(){
+  const {groups} = songsByMoment();
+  return 'Pjesme za svatove\n' + groups.map(g => '\n' + g.t.toUpperCase() + '\n' +
+    g.items.map(p => '- ' + [p.izvodjac, p.naslov].filter(Boolean).join(' – ') + (p.napomena ? ' (' + p.napomena + ')' : '')).join('\n')).join('\n');
+}
+async function shareSongs(){
+  const text = songText();
+  try{ if (navigator.share){ await navigator.share({title:'Pjesme za svatove', text}); return; } }catch(e){ if (e.name === 'AbortError') return; }
+  try{ await navigator.clipboard.writeText(text); toast('Popis je kopiran. Zalijepi ga u poruku DJ-u.'); return; }catch(e){}
+  openSheet({title:'Popis za DJ-a', body:`<div class="group"><div class="field"><label for="f-txt">Označi i kopiraj tekst</label><textarea id="f-txt" rows="14" readonly>${esc(text)}</textarea></div></div>`, onSave(){}});
+}
+function songSheet(id){
+  const p = id ? data.pjesme[id] : {naslov:'', izvodjac:'', trenutak:'Za ples', napomena:''};
+  openSheet({
+    title: id ? 'Uredi pjesmu' : 'Nova pjesma',
+    body: `<div class="group">
+      <div class="field"><label for="f-nas">Naslov</label><input id="f-nas" name="naslov" value="${esc(p.naslov)}" placeholder="npr. Zlatni dukati" autocomplete="off" required></div>
+      <div class="field"><label for="f-izv">Izvođač</label><input id="f-izv" name="izvodjac" value="${esc(p.izvodjac)}" placeholder="npr. Mišo Kovač" autocomplete="off"></div>
+      <div class="field"><label for="f-tr">Kada</label><select id="f-tr" name="trenutak">${TRENUCI.map(t => `<option ${t === (p.trenutak || 'Za ples') ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+    </div>
+    <div class="group"><div class="field"><label for="f-nap">Napomena za DJ-a</label><input id="f-nap" name="napomena" value="${esc(p.napomena)}" placeholder="npr. pustiti od refrena, obavezno" autocomplete="off"></div></div>`,
+    onSave(form){
+      const naslov = form.naslov.value.trim();
+      if (!naslov){ form.naslov.focus(); return false; }
+      change('pjesme', id || uid(), {naslov, izvodjac: form.izvodjac.value.trim(), trenutak: form.trenutak.value, napomena: form.napomena.value.trim()});
+    },
+    deleteLabel: `Potvrdi brisanje: ${p.naslov}`,
+    onDelete: id ? () => { change('pjesme', id, null); toast('Pjesma je obrisana.'); } : null
+  });
+}
+
+/* ============ Pokloni i izvještaj ============ */
+let pQuery = '', pFilter = 'svi';
+function viewPokloni(){
+  const all = guestList();
+  const givers = all.filter(g => num(g.poklon) > 0);
+  const pok = givers.reduce((s, g) => s + num(g.poklon), 0);
+  const C = Object.values(data.troskovi).map(costCalc).reduce((s, c) => ({cijena: s.cijena + c.cijena, paid: s.paid + c.kapara + c.placeno, ostaje: s.ostaje + c.ostaje}), {cijena:0, paid:0, ostaje:0});
+  const bySide = s => givers.filter(g => g.strana === s).reduce((t, g) => t + num(g.poklon), 0);
+  const bil = pok - C.cijena;
+  const cover = C.cijena ? Math.round(pok / C.cijena * 100) : 0;
+  const head = `<header class="top"><h1>Pokloni</h1><div class="actions">${GEAR_BTN()}</div></header>`;
+  return head + `<p class="lede">Darivalo ${givers.length} od ${nGosti(all.length)}${C.cijena ? `, pokloni pokrivaju ${cover} % troškova` : ''}</p>
+  <section class="group" aria-label="Pokloni ukupno">
+    <div class="ledger">
+      <div class="ledger-top"><span class="ledger-paid">${money(pok)}</span><span class="ledger-of">poklonjeno ukupno</span></div>
+    </div>
+    <div class="kv"><span>Prosjek po darivatelju</span><span>${money(givers.length ? pok / givers.length : 0)}</span></div>
+    <div class="kv"><span>Mladenkina strana</span><span>${money(bySide('Mladenka'))}</span></div>
+    <div class="kv"><span>Mladoženjina strana</span><span>${money(bySide('Mladoženja'))}</span></div>
+    <div class="kv"><span>Zajednički</span><span>${money(bySide('Zajednički'))}</span></div>
+  </section>
+  <h2 class="section-h">Troškovi</h2>
+  <section class="group">
+    <div class="kv"><span>Ukupni troškovi</span><span>${money(C.cijena)}</span></div>
+    <div class="kv"><span>Plaćeno do sada (s kaparama)</span><span>${money(C.paid)}</span></div>
+    <div class="kv"><span>Ostaje za platiti</span><span>${money(C.ostaje)}</span></div>
+  </section>
+  <h2 class="section-h">Izvještaj</h2>
+  <section class="group">
+    <div class="kv"><span>Pokloni</span><span>${money(pok)}</span></div>
+    <div class="kv"><span>Ukupni troškovi</span><span>− ${money(C.cijena)}</span></div>
+    <div class="kv strong ${bil >= 0 ? 'done' : ''}"><span>${bil >= 0 ? 'Višak' : 'Manjak'}</span><span>${money(Math.abs(bil))}</span></div>
+    <div class="kv"><span>Pokloni nakon što se plati ostatak</span><span>${money(pok - C.ostaje)}</span></div>
+  </section>
+  <h2 class="section-h">Po gostima</h2>
+  ${all.length ? `<div class="search">${ICON.search}<input type="search" id="p-search" placeholder="Traži gosta" value="${esc(pQuery)}" autocomplete="off" aria-label="Traži gosta"></div>
+  <div class="seg" role="group" aria-label="Filtar">
+    ${[['svi','Svi', all.length],['da','Darivali', givers.length],['ne','Još nisu', all.length - givers.length]].map(([k, l, n]) =>
+      `<button data-action="pfilter" data-v="${k}" aria-pressed="${pFilter === k}">${l} (${n})</button>`).join('')}
+  </div>
+  <div id="p-list" style="margin-top:12px"></div>` : `<div class="group empty"><p>Prvo dodaj goste, pa ovdje upisuj koliko je tko poklonio.</p></div>`}`;
+}
+function fillGiftList(){
+  const el = $('#p-list'); if (!el) return;
+  const q = norm(pQuery);
+  const list = guestList().filter(g => (pFilter === 'svi' || (pFilter === 'da') === (num(g.poklon) > 0)) && (!q || norm(g.ime).includes(q)));
+  el.innerHTML = list.length ? `<div class="group">${list.map(g => `
+    <button class="row" data-action="gift-edit" data-id="${esc(g.id)}">
+      <div class="row-main"><div class="row-title">${esc(g.ime)}</div><div class="row-sub">${esc(g.strana || '')}</div></div>
+      <div class="row-end"><div class="amt ${num(g.poklon) ? '' : 'muted'}">${num(g.poklon) ? money(num(g.poklon)) : 'Upiši'}</div></div>
+      ${ICON.chev}
+    </button>`).join('')}</div>`
+    : `<div class="group empty"><p>${q ? `Nema gosta koji odgovara „${esc(pQuery)}”.` : pFilter === 'ne' ? 'Svi gosti imaju upisan poklon.' : 'Još nema upisanih poklona.'}</p></div>`;
+}
+function giftSheet(id){
+  const g = data.gosti[id]; if (!g) return;
+  openSheet({
+    title: 'Poklon',
+    body: `<p class="note" style="margin:6px 4px 0; font-size:17px; color:var(--label)">${esc(g.ime)}</p>
+    <div class="group"><div class="field"><label for="f-pok">Iznos (€)</label><input id="f-pok" name="poklon" inputmode="decimal" value="${esc(inputNum(g.poklon))}" placeholder="0" autocomplete="off"></div></div>
+    <p class="note">Ako je par ili obitelj dala zajedno, upiši cijeli iznos kod jedne osobe.</p>
+    <button type="button" class="btn" style="margin-top:18px; width:100%; justify-content:center" data-sheet-guest="${esc(id)}">Uredi ili obriši gosta</button>`,
+    onSave(form){ change('gosti', id, {...g, poklon: numStr(num(form.poklon.value))}); }
+  });
+  setTimeout(() => $('#f-pok')?.focus(), 50);
+}
+const GEAR_BTN = () => `<button class="icon-btn" data-action="open-settings" aria-label="Postavke">${ICON.gear}</button>`;
+
+/* ============ Postavke ============ */
+function viewPostavke(){
+  const st = {off:['','Nije povezano s Google tablicom. Podaci su samo na ovom uređaju.'], idle:['', 'Povezano.'], busy:['busy', sync.msg], ok:['ok', 'Sve je spremljeno u tablicu' + (sync.at ? ' u ' + sync.at.toLocaleTimeString('hr-HR', {hour:'2-digit', minute:'2-digit'}) : '') + '.'], err:['err', sync.msg], 'off-net':['busy', sync.msg]}[sheetUrl ? sync.state : 'off'] || ['', ''];
+  const waiting = Object.keys(data.dirty).length;
+  return `<button class="link back" data-action="settings-back">‹ Natrag</button>
+  <header class="top" style="padding-top:4px"><h1>Postavke</h1></header>
+  <p class="lede">Poveži Google tablicu da podaci budu isti na svim mobitelima.</p>
+  <h2 class="section-h">Google tablica</h2>
+  <div class="group">
+    <div class="kv"><span class="status"><span class="dot ${st[0]}" aria-hidden="true"></span>${esc(st[1])}</span></div>
+    ${sheetUrl && waiting ? `<div class="kv"><span>Promjene koje čekaju slanje</span><span>${waiting}</span></div>` : ''}
+    <div class="field"><label for="s-url">Link skripte (završava s /exec)</label><input id="s-url" type="url" value="${esc(sheetUrl)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+  </div>
+  <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap">
+    <button class="btn primary" data-action="url-save">Spremi link</button>
+    ${sheetUrl ? `<button class="btn" data-action="sync-now">Sinkroniziraj sada</button>` : ''}
+  </div>
+  <p class="note">Link je ključ za čitanje i pisanje tablice. Ostaje samo u ovom pregledniku; ne dijeli ga javno.</p>
+  <h2 class="section-h">Sigurnosna kopija</h2>
+  <div class="group">
+    <button class="row" data-action="export"><div class="row-main"><div class="row-title">Preuzmi kopiju (.json)</div></div>${ICON.chev}</button>
+    <button class="row" data-action="import"><div class="row-main"><div class="row-title">Vrati iz kopije</div><div class="row-sub">Zamjenjuje sve trenutne podatke</div></div>${ICON.chev}</button>
+  </div>
+  <input type="file" id="imp" accept="application/json,.json" hidden>
+  <p class="version">${VERZIJA}</p>`;
+}
+function exportData(){
+  const out = {}; for (const k in KINDS) out[k] = data[k];
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'svatovi-' + new Date().toISOString().slice(0, 10) + '.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function importData(file){
+  const r = new FileReader();
+  r.onload = async () => {
+    try{
+      const d = JSON.parse(r.result);
+      if (!d.troskovi || !d.gosti || !d.stolovi) throw 0;
+      d.pjesme = d.pjesme || {};
+      if (!(await ask({title:'Vratiti iz kopije?', message:'Svi trenutni podaci zamijenit će se podacima iz kopije.', ok:'Vrati', danger:true}))) return;
+      for (const k in KINDS){
+        for (const id in data[k]) if (!d[k][id]) change(k, id, null);
+        for (const id in d[k]) change(k, id, d[k][id]);
+      }
+      ensureMladenacki(); render(); toast('Podaci su vraćeni iz kopije.');
+    }catch(e){ toast('Datoteka nije ispravna kopija aplikacije Svatovi.'); }
+  };
+  r.readAsText(file);
+}
+
+/* ============ Potvrda i obavijest (rade i u ugrađenim pregledima) ============ */
+function showDlg(d){ if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
+function hideDlg(d){ if (d.close) { if (d.open) d.close(); } else d.removeAttribute('open'); }
+function ask({title, message = '', ok = 'U redu', danger = false, input = null}){
+  return new Promise(resolve => {
+    const d = $('#ask');
+    d.innerHTML = `<form class="ask-in" novalidate><h2 id="ask-title">${esc(title)}</h2>${message ? `<p>${esc(message)}</p>` : ''}
+      ${input !== null ? `<input name="v" value="${esc(input)}" autocomplete="off" aria-label="${esc(title)}">` : ''}
+      <div class="ask-btns"><button type="button" data-a="no">Odustani</button><button type="submit" class="${danger ? 'del' : ''}">${esc(ok)}</button></div></form>`;
+    const f = d.querySelector('form'); let done = false;
+    const finish = v => { if (done) return; done = true; hideDlg(d); resolve(v); };
+    f.addEventListener('submit', e => { e.preventDefault(); finish(input !== null ? f.v.value : true); });
+    f.querySelector('[data-a=no]').addEventListener('click', () => finish(input !== null ? null : false));
+    d.addEventListener('cancel', () => finish(input !== null ? null : false), {once:true});
+    showDlg(d);
+    if (input !== null) setTimeout(() => f.v.focus(), 30);
+  });
+}
+let toastT = null;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200);
+}
+
+/* ============ Sheet (modalni prozor) ============ */
+let sheetCfg = null;
+function openSheet(cfg){
+  sheetCfg = cfg;
+  const d = $('#sheet');
+  d.innerHTML = `<form class="sheet-in" method="dialog" novalidate>
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="sheet-bar"><button type="button" class="link" data-sheet="cancel">Odustani</button>
+      <h2 id="sheet-title">${esc(cfg.title)}</h2>
+      <button type="submit" class="link">Spremi</button></div>
+    <div class="sheet-body">${cfg.body}${cfg.onDelete ? `<button type="button" class="danger" data-sheet="delete">Obriši</button>` : ''}</div>
+  </form>`;
+  const form = d.querySelector('form');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    if (cfg.onSave(form) === false) return;
+    closeSheet();
+  });
+  form.addEventListener('click', e => {
+    const s = e.target.closest('[data-seg]');
+    if (s){
+      form.querySelectorAll(`[data-seg="${s.dataset.seg}"]`).forEach(b => b.setAttribute('aria-pressed', b === s));
+      form[s.dataset.seg].value = s.dataset.v; return;
+    }
+    const ge = e.target.closest('[data-sheet-guest]');
+    if (ge){ closeSheet(); setTimeout(() => guestSheet(ge.dataset.sheetGuest), 0); return; }
+    const a = e.target.closest('[data-sheet]'); if (!a) return;
+    if (a.dataset.sheet === 'cancel') closeSheet();
+    if (a.dataset.sheet === 'delete'){
+      if (!a.classList.contains('armed')){
+        a.classList.add('armed'); a.textContent = cfg.deleteLabel || 'Dodirni ponovno za brisanje';
+        setTimeout(() => { if (a.isConnected){ a.classList.remove('armed'); a.textContent = 'Obriši'; } }, 4000);
+        return;
+      }
+      cfg.onDelete(); closeSheet();
+    }
+  });
+  cfg.onOpen?.(form);
+  showDlg(d);
+  if (!matchMedia('(pointer:coarse)').matches) form.querySelector('input:not([type=hidden]),textarea')?.focus();
+}
+function closeSheet(){ const d = $('#sheet'); const was = d.open || d.hasAttribute('open'); hideDlg(d); if (was && !d.close){ pendingRender = false; render(); } }
+$('#sheet').addEventListener('close', () => { pendingRender = false; render(); });
+$('#sheet').addEventListener('click', e => { if (e.target === e.currentTarget) closeSheet(); });
+
+/* ============ Događaji ============ */
+document.addEventListener('click', e => {
+  const pick = e.target.closest('[data-pick]');
+  if (pick){ seatGuest(pick.dataset.pick); return; }
+  if (e.target.closest('[data-create]')){ createAndSeat(); return; }
+  const a = e.target.closest('#app [data-action]'); if (!a) return;
+  const {action, id, table, v} = a.dataset;
+  switch (action){
+    case 'cost-new': return costSheet(null);
+    case 'cost-edit': return costSheet(id);
+    case 'guest-new': return guestSheet(null);
+    case 'guest-edit': return guestSheet(id);
+    case 'gfilter': gFilter = v; return render();
+    case 'pfilter': pFilter = v; return render();
+    case 'gift-edit': return giftSheet(id);
+    case 'song-new': return songSheet(null);
+    case 'song-edit': return songSheet(id);
+    case 'song-share': return shareSongs();
+    case 'open-settings': return go('postavke');
+    case 'settings-back': return go(prevRoute);
+    case 'table-add': return addTable();
+    case 'table-remove-last': {
+      const reg = tables().filter(t => t.mladenacki !== 'da');
+      if (reg.length) removeTable(reg[reg.length - 1].id);
+      return;
+    }
+    case 'table-remove': return removeTable(table);
+    case 'table-rename': return renameTable(table);
+    case 'seat-open': openCombo = table; comboQuery = ''; comboIdx = 0; render(); fillCombo(true); return;
+    case 'seat-close': openCombo = null; comboQuery = ''; return render();
+    case 'unseat': change('gosti', id, {...data.gosti[id], stol:''}); if (openCombo) { render(); fillCombo(false); } else render(); return;
+    case 'url-save': {
+      const v2 = $('#s-url').value.trim();
+      if (v2 && !/^https:\/\/script\.google(usercontent)?\.com\//.test(v2)){ toast('Link mora počinjati s https://script.google.com/ i završavati s /exec.'); return; }
+      sheetUrl = v2; localStorage.setItem(URL_KEY, v2);
+      if (v2){ for (const k in KINDS) for (const id2 in data[k]) data.dirty[k + ':' + id2] = true; persist(); sync.state = 'busy'; sync.msg = 'Povezivanje…'; render(); pull(); }
+      else { sync.state = 'off'; render(); }
+      return;
+    }
+    case 'sync-now': pull(); return;
+    case 'export': return exportData();
+    case 'import': return $('#imp').click();
+  }
+});
+// u listi kombinirane pretrage: ne gubi fokus s polja kad se dodirne stavka
+document.addEventListener('mousedown', e => { if (e.target.closest('.combo-list li')) e.preventDefault(); });
+document.addEventListener('change', e => { if (e.target.id === 'imp' && e.target.files[0]) importData(e.target.files[0]); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'g-search'){ gQuery = e.target.value; fillGuestList(); }
+  if (e.target.id === 'p-search'){ pQuery = e.target.value; fillGiftList(); }
+  if (e.target.classList.contains('combo-input')){ comboQuery = e.target.value; comboIdx = 0; fillCombo(false); }
+});
+document.addEventListener('keydown', e => {
+  if (!e.target.classList?.contains('combo-input')) return;
+  const items = [...document.querySelectorAll('.combo-list [role="option"]')];
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault(); if (!items.length) return;
+    const cur = items.findIndex(li => li.getAttribute('aria-selected') === 'true');
+    const nxt = (cur + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    items.forEach((li, i) => li.setAttribute('aria-selected', i === nxt));
+    comboIdx = nxt; items[nxt].scrollIntoView({block:'nearest'});
+    if (items[nxt].id) e.target.setAttribute('aria-activedescendant', items[nxt].id);
+  } else if (e.key === 'Enter'){
+    e.preventDefault();
+    const sel = items.find(li => li.getAttribute('aria-selected') === 'true') || items[0];
+    if (sel?.dataset.pick) seatGuest(sel.dataset.pick); else if (sel?.dataset.create) createAndSeat();
+  } else if (e.key === 'Escape'){
+    openCombo = null; comboQuery = ''; render();
+  }
+});
+
+/* ============ Start ============ */
+ensureMladenacki();
+render();
+pull();
+</script>
+</body>
+</html>
