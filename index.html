@@ -215,6 +215,27 @@ dialog#ask{border:0; border-radius:16px; padding:0; width:min(320px, calc(100% -
 .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 14px); z-index:30;
   background:var(--surface); color:var(--label); padding:12px 18px; border-radius:14px; font-size:15px; max-width:calc(100% - 32px); box-shadow:0 8px 24px rgba(60,10,18,.3)}
 .group .seg button[aria-pressed="true"]{background:var(--accent); color:var(--on-accent)}
+.chips{display:flex; flex-wrap:wrap; gap:8px; padding:2px 0 8px; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0; min-height:36px; padding:0 14px; border-radius:99px; border:1.5px solid var(--sep); background:none; color:var(--label); font-size:15px; font-weight:500; white-space:nowrap}
+.chip span{color:var(--label-2); font-variant-numeric:tabular-nums; margin-left:2px}
+.chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600}
+.chip[aria-pressed="true"] span{color:var(--on-accent); opacity:.85}
+.row.grow{padding:0 0 0 4px; gap:0}
+.row-link{flex:1; min-width:0; display:flex; align-items:center; gap:12px; background:none; border:0; text-align:left; padding:11px 16px 11px 4px; min-height:56px}
+.row-link:active{background:var(--fill)}
+.check{width:48px; height:52px; flex-shrink:0; border:0; background:none; display:grid; place-items:center; padding:0}
+.check svg{width:26px; height:26px; border-radius:99px; border:2px solid var(--label-3); padding:2px; color:transparent; box-sizing:border-box}
+.check[aria-checked="true"] svg{background:var(--accent); border-color:var(--accent); color:var(--on-accent)}
+.pending{font-size:14px; color:var(--label-2); font-style:italic; white-space:nowrap}
+.switch-row{display:flex !important; align-items:center; justify-content:space-between; gap:12px; min-height:52px; cursor:pointer}
+.switch-row span{font-size:17px}
+.switch{appearance:none; -webkit-appearance:none; width:51px !important; min-height:31px !important; height:31px; border-radius:99px !important; background:var(--fill) !important; position:relative; padding:0 !important; flex-shrink:0; cursor:pointer; transition:background .2s}
+.switch::after{content:""; position:absolute; top:2px; left:2px; width:27px; height:27px; border-radius:99px; background:#FFF6E8; box-shadow:0 2px 4px rgba(0,0,0,.25); transition:transform .2s}
+.switch:checked{background:var(--accent) !important}
+.switch:checked::after{transform:translateX(20px); background:var(--on-accent)}
+.hint{font-size:13px; color:var(--label-2); margin:6px 0 0}
+select:disabled{opacity:.5}
 .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
 @media (prefers-reduced-motion: no-preference){
   dialog#sheet[open]{animation:up .28s cubic-bezier(.2,.8,.2,1)}
@@ -253,11 +274,11 @@ dialog#ask{border:0; border-radius:16px; padding:0; width:min(320px, calc(100% -
 /* ============ Podaci (local-first, vidi ARHITEKTURA.md) ============ */
 const KEY = 'svatovi-v1';
 const URL_KEY = 'svatovi-sheets-url';
-const VERZIJA = 'v.7.11d';
+const VERZIJA = 'v.7.11e';
 
 const KINDS = {
   troskovi: ['naziv','cijena','kapara','placeno','napomena'],
-  gosti:    ['ime','strana','stol','napomena','poklon'],
+  gosti:    ['ime','strana','stol','napomena','poklon','dolazi'],
   stolovi:  ['naziv','mjesta','mladenacki','redoslijed'],
   pjesme:   ['naslov','izvodjac','trenutak','napomena']
 };
@@ -346,7 +367,8 @@ async function pull(){
     const out = await (await fetch(sheetUrl)).json();
     if (!out.ok) throw new Error(out.error || 'Skripta je vratila grešku');
     if (out.updated > data.base) merge(out);
-    if (!Array.isArray(out.pjesme)){ setSync('err', 'Skripta u tablici je stara verzija. Zalijepi novi Code.gs i objavi ga kao novu verziju (Upravljaj implementacijama → ✏️ → Nova verzija).'); return; }
+    migrateDolazi();
+    if (!(out.v >= 2)){ setSync('err', 'Skripta u tablici je stara verzija. Zalijepi novi Code.gs i objavi ga kao novu verziju (Upravljaj implementacijama → ✏️ → Nova verzija).'); return; }
     if (Object.keys(data.dirty).length) await push(); else setSync('ok');
   }catch(e){
     setSync(navigator.onLine ? 'err' : 'off-net', navigator.onLine ? 'Tablica se ne može učitati. Provjeri link skripte.' : 'Nema interneta. Radiš na lokalnoj kopiji.');
@@ -419,6 +441,22 @@ function tableLabels(){
 const guestList = () => Object.entries(data.gosti).map(([id, g]) => ({id, ...g})).sort((a, b) => coll.compare(a.ime, b.ime));
 const seatedAt = tid => guestList().filter(g => g.stol === tid);
 const isSeated = g => !!(g.stol && data.stolovi[g.stol]);
+const isConf = g => g.dolazi === 'da';
+const confirmedList = () => guestList().filter(isConf);
+// Jednokratno: gosti koji su već bili za stolom ili imaju poklon smatraju se potvrđenima.
+function migrateDolazi(){
+  const K = 'svatovi-mig-dolazi';
+  if (localStorage.getItem(K)) return;
+  for (const [id, g] of Object.entries(data.gosti))
+    if (!isConf(g) && ((g.stol && data.stolovi[g.stol]) || num(g.poklon) > 0)) change('gosti', id, {...g, dolazi:'da'});
+  try{ localStorage.setItem(K, '1'); }catch(e){}
+}
+function setDolazi(id, on){
+  const g = data.gosti[id]; if (!g) return;
+  const wasSeated = isSeated(g);
+  change('gosti', id, {...g, dolazi: on ? 'da' : '', stol: on ? g.stol : ''});
+  if (!on && wasSeated) toast(`${g.ime} je maknut/a sa stola jer dolazak nije potvrđen.`);
+}
 const capacity = t => Math.max(1, Math.round(num(t.mjesta)) || 10);
 function initials(name){
   const p = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -480,7 +518,7 @@ function bar(cls, c){
 function viewTroskovi(){
   const items = Object.entries(data.troskovi).map(([id, t]) => ({id, ...t, c: costCalc(t)})).sort((a, b) => a.id.localeCompare(b.id));
   const S = items.reduce((s, x) => ({cijena: s.cijena + x.c.cijena, kapara: s.kapara + x.c.kapara, placeno: s.placeno + x.c.placeno, ostaje: s.ostaje + x.c.ostaje}), {cijena:0, kapara:0, placeno:0, ostaje:0});
-  const nG = Object.keys(data.gosti).length;
+  const nG = confirmedList().length;
   const head = `<header class="top"><h1>Troškovi</h1><div class="actions">
     <button class="icon-btn" data-action="open-settings" aria-label="Postavke">${ICON.gear}</button>
     <button class="icon-btn primary" data-action="cost-new" aria-label="Dodaj trošak">${ICON.plus}</button></div></header>`;
@@ -499,7 +537,7 @@ function viewTroskovi(){
     <div class="kv"><span>Dano kapare</span><span>${money(S.kapara)}</span></div>
     <div class="kv"><span>Plaćeno (bez kapare)</span><span>${money(S.placeno)}</span></div>
     <div class="kv strong ${S.ostaje ? '' : 'done'}"><span>Ostaje za platiti</span><span>${money(S.ostaje)}</span></div>
-    ${nG ? `<div class="kv"><span>Po gostu (${nGosti(nG)})</span><span>${money(S.cijena / nG)}</span></div>` : ''}
+    ${nG ? `<div class="kv"><span>Po gostu (${nG} ${plural(nG,'potvrđen','potvrđena','potvrđenih')})</span><span>${money(S.cijena / nG)}</span></div>` : ''}
   </section>
   <h2 class="section-h">Stavke</h2>
   <div class="group">${items.map(x => `
@@ -543,36 +581,49 @@ function costSheet(id){
 }
 
 /* ============ Gosti ============ */
-let gQuery = '', gFilter = 'svi';
+let gQuery = '', gFilter = 'svi', gSide = 'sve';
+const SIDE_LABEL = {'sve':'Sve strane', 'Mladenka':'Mladina', 'Mladoženja':'Mladoženjina', 'Zajednički':'Zajednički'};
 function viewGosti(){
-  const all = guestList(); const seated = all.filter(isSeated).length;
+  const all = guestList();
   const head = `<header class="top"><h1>Gosti</h1><div class="actions">
     <button class="icon-btn" data-action="open-settings" aria-label="Postavke">${ICON.gear}</button>
     <button class="icon-btn primary" data-action="guest-new" aria-label="Dodaj goste">${ICON.plus}</button></div></header>`;
-  if (!all.length) return head + `<p class="lede">Popis svih koji dolaze na svatove.</p>
+  if (!all.length) return head + `<p class="lede">Popis svih pozvanih na svatove.</p>
     <div class="group empty"><p>Popis je prazan. Goste možeš upisati jednog po jednog ili zalijepiti cijeli popis odjednom.</p>
     <button class="btn primary" data-action="guest-new">Dodaj goste</button></div>`;
-  const side = s => all.filter(g => g.strana === s).length;
-  return head + `<p class="lede">${nGosti(all.length)}: ${side('Mladenka')} mladenkinih, ${side('Mladoženja')} mladoženjinih, ${side('Zajednički')} zajedničkih</p>
+  const inSide = all.filter(g => gSide === 'sve' || g.strana === gSide);
+  const conf = inSide.filter(isConf);
+  const counts = {svi: inSide.length, da: conf.length, ne: inSide.length - conf.length, bez: conf.filter(g => !isSeated(g)).length};
+  const allConf = all.filter(isConf).length;
+  return head + `<p class="lede">Pozvano ${all.length}, potvrdilo dolazak ${allConf}. Kvačicom označi tko dolazi.</p>
   <div class="search">${ICON.search}<input type="search" id="g-search" placeholder="Traži po imenu" value="${esc(gQuery)}" autocomplete="off" aria-label="Traži goste"></div>
-  <div class="seg" role="group" aria-label="Filtar">
-    ${[['svi','Svi', all.length],['bez','Bez stola', all.length - seated],['za','Za stolom', seated]].map(([k, l, n]) =>
-      `<button data-action="gfilter" data-v="${k}" aria-pressed="${gFilter === k}">${l} (${n})</button>`).join('')}
+  <div class="chips" role="group" aria-label="Strana">
+    ${Object.keys(SIDE_LABEL).map(k => `<button class="chip" data-action="gside" data-v="${esc(k)}" aria-pressed="${gSide === k}">${SIDE_LABEL[k]} <span>${k === 'sve' ? all.length : all.filter(g => g.strana === k).length}</span></button>`).join('')}
   </div>
-  <div id="g-list" style="margin-top:12px"></div>`;
+  <div class="chips" role="group" aria-label="Dolazak">
+    ${[['svi','Svi'],['da','Potvrdili'],['ne','Nisu potvrdili'],['bez','Bez stola']].map(([k, l]) =>
+      `<button class="chip" data-action="gfilter" data-v="${k}" aria-pressed="${gFilter === k}">${l} <span>${counts[k]}</span></button>`).join('')}
+  </div>
+  <div id="g-list" style="margin-top:8px"></div>`;
 }
 function fillGuestList(){
   const el = $('#g-list'); if (!el) return;
   const labels = tableLabels(); const q = norm(gQuery);
   const list = guestList().filter(g =>
-    (gFilter === 'svi' || (gFilter === 'bez') === !isSeated(g)) && (!q || norm(g.ime).includes(q)));
+    (gSide === 'sve' || g.strana === gSide) &&
+    (gFilter === 'svi' || (gFilter === 'da' && isConf(g)) || (gFilter === 'ne' && !isConf(g)) || (gFilter === 'bez' && isConf(g) && !isSeated(g))) &&
+    (!q || norm(g.ime).includes(q)));
   el.innerHTML = list.length ? `<div class="group">${list.map(g => `
-    <button class="row" data-action="guest-edit" data-id="${esc(g.id)}">
-      <div class="row-main"><div class="row-title">${esc(g.ime)}</div><div class="row-sub">${esc([g.strana, g.napomena].filter(Boolean).join(', ') || 'Bez napomene')}</div></div>
-      <span class="badge ${isSeated(g) ? '' : 'none'}">${isSeated(g) ? esc(labels[g.stol]) : 'Bez stola'}</span>
-      ${ICON.chev}
-    </button>`).join('')}</div>`
-    : `<div class="group empty"><p>${q ? `Nema gosta koji odgovara „${esc(gQuery)}”.` : gFilter === 'bez' ? 'Svi gosti imaju mjesto za stolom.' : 'Još nitko nije raspoređen za stol.'}</p></div>`;
+    <div class="row grow">
+      <button class="check" role="checkbox" aria-checked="${isConf(g)}" data-action="toggle-dolazi" data-id="${esc(g.id)}" aria-label="${esc(g.ime)} je potvrdio/la dolazak">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 12.5 4 4 8-9"/></svg></button>
+      <button class="row-link" data-action="guest-edit" data-id="${esc(g.id)}">
+        <div class="row-main"><div class="row-title">${esc(g.ime)}</div><div class="row-sub">${esc([g.strana, g.napomena].filter(Boolean).join(', ') || 'Bez napomene')}</div></div>
+        ${isConf(g) ? `<span class="badge ${isSeated(g) ? '' : 'none'}">${isSeated(g) ? esc(labels[g.stol]) : 'Bez stola'}</span>` : `<span class="pending">Čeka potvrdu</span>`}
+        ${ICON.chev}
+      </button>
+    </div>`).join('')}</div>`
+    : `<div class="group empty"><p>${q ? `Nema gosta koji odgovara „${esc(gQuery)}”.` : ({da:'Nitko u ovom odabiru još nije potvrdio dolazak.', ne:'Svi u ovom odabiru su potvrdili dolazak.', bez:'Svi potvrđeni gosti imaju mjesto za stolom.'})[gFilter] || 'Nema gostiju u ovom odabiru.'}</p></div>`;
 }
 
 function segHtml(name, opts, val){
@@ -581,7 +632,7 @@ function segHtml(name, opts, val){
     <input type="hidden" name="${name}" value="${esc(val)}">`;
 }
 function guestSheet(id){
-  const g = id ? data.gosti[id] : {ime:'', strana:'Zajednički', stol:'', napomena:'', poklon:''};
+  const g = id ? data.gosti[id] : {ime:'', strana: gSide !== 'sve' ? gSide : 'Zajednički', stol:'', napomena:'', poklon:'', dolazi:''};
   const labels = tableLabels();
   const opts = tables().map(t => {
     const free = capacity(t) - seatedAt(t.id).length;
@@ -596,19 +647,28 @@ function guestSheet(id){
         ? `<div class="field"><label for="f-ime">Ime i prezime</label><input id="f-ime" name="ime" value="${esc(g.ime)}" autocomplete="off" required></div>`
         : `<div class="field"><label for="f-ime">Ime i prezime</label><textarea id="f-ime" name="ime" rows="4" placeholder="Ana Horvat&#10;Marko Kovač&#10;…" required></textarea></div>`}
       <div class="field"><span class="flabel">Strana</span>${segHtml('strana', STRANE, g.strana || 'Zajednički')}</div>
-      <div class="field"><label for="f-stol">Stol</label><select id="f-stol" name="stol"><option value="">Bez stola</option>${opts}</select></div>
+      <label class="field switch-row" for="f-dol"><span>Potvrdio/la dolazak</span><input type="checkbox" id="f-dol" name="dolazi" class="switch" ${isConf(g) ? 'checked' : ''}></label>
+      <div class="field"><label for="f-stol">Stol</label><select id="f-stol" name="stol"><option value="">Bez stola</option>${opts}</select>
+        <p class="hint" id="f-stol-hint">Za stol se mogu staviti samo gosti koji su potvrdili dolazak.</p></div>
     </div>
     ${id ? '' : '<p class="note">Za više gostiju odjednom upiši ili zalijepi svako ime u novi red.</p>'}
     <div class="group"><div class="field"><label for="f-nap">Napomena</label><input id="f-nap" name="napomena" value="${esc(g.napomena)}" placeholder="npr. vegetarijanac, dijete, +1" autocomplete="off"></div>
     ${id ? `<div class="field"><label for="f-pok">Poklon (€)</label><input id="f-pok" name="poklon" inputmode="decimal" value="${esc(inputNum(g.poklon))}" placeholder="0"></div>` : ''}</div>`,
+    onOpen(form){
+      const upd = () => { const on = form.dolazi.checked; form.stol.disabled = !on; if (!on) form.stol.value = '';
+        form.querySelector('#f-stol-hint').hidden = on; };
+      form.dolazi.addEventListener('change', upd); upd();
+    },
     onSave(form){
       const names = form.ime.value.split('\n').map(s => s.trim()).filter(Boolean);
       if (!names.length){ form.ime.focus(); return false; }
-      let stol = form.stol.value;
-      const base = {strana: form.strana.value, napomena: form.napomena.value.trim()};
+      const dolazi = form.dolazi.checked ? 'da' : '';
+      let stol = dolazi ? form.stol.value : '';
+      const base = {strana: form.strana.value, napomena: form.napomena.value.trim(), dolazi};
       if (id){ change('gosti', id, {...g, ...base, ime: names.join(' '), stol, poklon: numStr(num(form.poklon.value))}); return; }
       let free = stol ? capacity(data.stolovi[stol]) - seatedAt(stol).length : 0;
       names.forEach(ime => { change('gosti', uid(), {...base, poklon:'', ime, stol: stol && free-- > 0 ? stol : ''}); });
+      if (names.length > 1) toast(`Dodano ${nGosti(names.length)}.`);
     },
     deleteLabel: `Potvrdi brisanje: ${g.ime}`,
     onDelete: id ? () => { change('gosti', id, null); toast(`${g.ime} je obrisan/a s popisa.`); } : null
@@ -616,7 +676,7 @@ function guestSheet(id){
 }
 
 /* ============ Stolovi ============ */
-let openCombo = null, comboQuery = '', comboIdx = 0;
+let openCombo = null, comboQuery = '', comboIdx = 0, html_pending = [];
 function planSvg(t, people){
   const n = Math.max(capacity(t), people.length);
   const seat = (x, y, i) => {
@@ -636,7 +696,8 @@ function planSvg(t, people){
   return `<svg class="plan" viewBox="0 0 160 160" aria-hidden="true"><circle class="tbl" cx="80" cy="80" r="44"/>${s}</svg>`;
 }
 function viewStolovi(){
-  const ts = tables(); const labels = tableLabels(); const all = guestList();
+  const ts = tables(); const labels = tableLabels(); const all = confirmedList();
+  const pendingN = guestList().length - all.length;
   const regular = ts.filter(t => t.mladenacki !== 'da');
   const seats = ts.reduce((s, t) => s + capacity(t), 0);
   const seated = all.filter(isSeated).length;
@@ -645,7 +706,7 @@ function viewStolovi(){
       <button class="btn" data-action="table-remove-last" ${regular.length ? '' : 'disabled'}>Makni stol</button>
       <button class="btn primary" data-action="table-add">${ICON.plus.replace('<svg', '<svg width="18" height="18"')} Dodaj stol</button>
     </div></header>
-  <p class="lede">${ts.length} ${plural(ts.length,'stol','stola','stolova')}, ${seats} mjesta, ${seated} zauzeto. ${unseated ? `${nGosti(unseated)} još bez stola.` : all.length ? 'Svi gosti imaju mjesto.' : 'Prvo dodaj goste u popis.'}${seated + unseated > seats ? ` Treba još ${Math.ceil((seated + unseated - seats) / 10)} ${plural(Math.ceil((seated + unseated - seats) / 10),'stol','stola','stolova')}.` : ''}</p>
+  <p class="lede">${ts.length} ${plural(ts.length,'stol','stola','stolova')}, ${seats} mjesta, ${seated} zauzeto. ${unseated ? `${nGosti(unseated)} još bez stola.` : all.length ? 'Svi potvrđeni gosti imaju mjesto.' : 'Još nitko nije potvrdio dolazak.'}${pendingN ? ` Dolazak još nije potvrdilo: ${pendingN}.` : ''}${seated + unseated > seats ? ` Treba još ${Math.ceil((seated + unseated - seats) / 10)} ${plural(Math.ceil((seated + unseated - seats) / 10),'stol','stola','stolova')}.` : ''}</p>
   <div class="grid">${ts.map(t => tableCard(t, labels[t.id])).join('')}</div>`;
 }
 function tableCard(t, label){
@@ -673,16 +734,19 @@ function tableCard(t, label){
 }
 function comboMatches(){
   const q = norm(comboQuery);
-  return guestList().filter(g => !isSeated(g) && (!q || norm(g.ime).includes(q)));
+  return confirmedList().filter(g => !isSeated(g) && (!q || norm(g.ime).includes(q)));
 }
 function fillCombo(focus){
   const ul = document.getElementById('cl-' + openCombo); if (!ul) return;
   const list = comboMatches();
   if (comboIdx >= list.length) comboIdx = 0;
   let html = list.slice(0, 200).map((g, i) => `<li role="option" id="opt-${esc(g.id)}" data-pick="${esc(g.id)}" aria-selected="${i === comboIdx}"><span class="nm">${esc(g.ime)}</span><span class="sd">${esc(g.strana || '')}</span></li>`).join('');
-  if (comboQuery.trim() && !list.some(g => norm(g.ime) === norm(comboQuery)))
+  const hiddenPending = comboQuery.trim() ? guestList().filter(g => !isConf(g) && norm(g.ime).includes(norm(comboQuery))) : [];
+  html_pending = hiddenPending;
+  if (comboQuery.trim() && !hiddenPending.length && !list.some(g => norm(g.ime) === norm(comboQuery)))
     html += `<li role="option" class="create" data-create="1" aria-selected="${!list.length}">Dodaj novog gosta „${esc(comboQuery.trim())}”</li>`;
-  if (!html) html = `<li class="info" role="presentation">${Object.keys(data.gosti).length ? 'Svi gosti već imaju mjesto za stolom.' : 'Popis gostiju je prazan.'}</li>`;
+  if (html_pending.length) html += html_pending.slice(0, 5).map(g => `<li role="option" class="create" id="cf-${esc(g.id)}" data-confirm="${esc(g.id)}">Potvrdi dolazak i dodaj: ${esc(g.ime)}</li>`).join('');
+  if (!html) html = `<li class="info" role="presentation">${confirmedList().length ? 'Svi potvrđeni gosti već imaju mjesto za stolom.' : Object.keys(data.gosti).length ? 'Nitko još nije potvrdio dolazak. Označi ih kvačicom u popisu Gosti.' : 'Popis gostiju je prazan.'}</li>`;
   ul.innerHTML = html;
   const inp = document.querySelector('.combo-input');
   const sel = ul.querySelector('[aria-selected="true"]');
@@ -697,7 +761,7 @@ function seatGuest(gid){
 }
 function createAndSeat(){
   const ime = comboQuery.trim(); const tid = openCombo; if (!ime || !data.stolovi[tid]) return;
-  change('gosti', uid(), {ime, strana:'Zajednički', stol: tid, napomena:'', poklon:''});
+  change('gosti', uid(), {ime, strana:'Zajednički', stol: tid, napomena:'', poklon:'', dolazi:'da'});
   afterSeat(tid);
 }
 function afterSeat(tid){
@@ -794,7 +858,7 @@ function songSheet(id){
 /* ============ Pokloni i izvještaj ============ */
 let pQuery = '', pFilter = 'svi';
 function viewPokloni(){
-  const all = guestList();
+  const all = confirmedList();
   const givers = all.filter(g => num(g.poklon) > 0);
   const pok = givers.reduce((s, g) => s + num(g.poklon), 0);
   const C = Object.values(data.troskovi).map(costCalc).reduce((s, c) => ({cijena: s.cijena + c.cijena, paid: s.paid + c.kapara + c.placeno, ostaje: s.ostaje + c.ostaje}), {cijena:0, paid:0, ostaje:0});
@@ -802,7 +866,7 @@ function viewPokloni(){
   const bil = pok - C.cijena;
   const cover = C.cijena ? Math.round(pok / C.cijena * 100) : 0;
   const head = `<header class="top"><h1>Pokloni</h1><div class="actions">${GEAR_BTN()}</div></header>`;
-  return head + `<p class="lede">Darivalo ${givers.length} od ${nGosti(all.length)}${C.cijena ? `, pokloni pokrivaju ${cover} % troškova` : ''}</p>
+  return head + `<p class="lede">Darivalo ${givers.length} od ${all.length} ${plural(all.length,'potvrđenog gosta','potvrđena gosta','potvrđenih gostiju')}${C.cijena ? `, pokloni pokrivaju ${cover} % troškova` : ''}</p>
   <section class="group" aria-label="Pokloni ukupno">
     <div class="ledger">
       <div class="ledger-top"><span class="ledger-paid">${money(pok)}</span><span class="ledger-of">poklonjeno ukupno</span></div>
@@ -831,12 +895,12 @@ function viewPokloni(){
     ${[['svi','Svi', all.length],['da','Darivali', givers.length],['ne','Još nisu', all.length - givers.length]].map(([k, l, n]) =>
       `<button data-action="pfilter" data-v="${k}" aria-pressed="${pFilter === k}">${l} (${n})</button>`).join('')}
   </div>
-  <div id="p-list" style="margin-top:12px"></div>` : `<div class="group empty"><p>Prvo dodaj goste, pa ovdje upisuj koliko je tko poklonio.</p></div>`}`;
+  <div id="p-list" style="margin-top:12px"></div>` : `<div class="group empty"><p>Ovdje se pokloni upisuju za goste koji su potvrdili dolazak. Označi ih kvačicom u popisu Gosti.</p></div>`}`;
 }
 function fillGiftList(){
   const el = $('#p-list'); if (!el) return;
   const q = norm(pQuery);
-  const list = guestList().filter(g => (pFilter === 'svi' || (pFilter === 'da') === (num(g.poklon) > 0)) && (!q || norm(g.ime).includes(q)));
+  const list = confirmedList().filter(g => (pFilter === 'svi' || (pFilter === 'da') === (num(g.poklon) > 0)) && (!q || norm(g.ime).includes(q)));
   el.innerHTML = list.length ? `<div class="group">${list.map(g => `
     <button class="row" data-action="gift-edit" data-id="${esc(g.id)}">
       <div class="row-main"><div class="row-title">${esc(g.ime)}</div><div class="row-sub">${esc(g.strana || '')}</div></div>
@@ -984,6 +1048,8 @@ document.addEventListener('click', e => {
   const pick = e.target.closest('[data-pick]');
   if (pick){ seatGuest(pick.dataset.pick); return; }
   if (e.target.closest('[data-create]')){ createAndSeat(); return; }
+  const cf = e.target.closest('[data-confirm]');
+  if (cf){ const g = data.gosti[cf.dataset.confirm]; if (g){ change('gosti', cf.dataset.confirm, {...g, dolazi:'da'}); seatGuest(cf.dataset.confirm); } return; }
   const a = e.target.closest('#app [data-action]'); if (!a) return;
   const {action, id, table, v} = a.dataset;
   switch (action){
@@ -992,6 +1058,13 @@ document.addEventListener('click', e => {
     case 'guest-new': return guestSheet(null);
     case 'guest-edit': return guestSheet(id);
     case 'gfilter': gFilter = v; return render();
+    case 'gside': gSide = v; return render();
+    case 'toggle-dolazi': {
+      const on = a.getAttribute('aria-checked') !== 'true';
+      setDolazi(id, on); render();
+      document.querySelector(`.check[data-id="${CSS.escape(id)}"]`)?.focus({preventScroll:true});
+      return;
+    }
     case 'pfilter': pFilter = v; return render();
     case 'gift-edit': return giftSheet(id);
     case 'song-new': return songSheet(null);
@@ -1044,7 +1117,7 @@ document.addEventListener('keydown', e => {
   } else if (e.key === 'Enter'){
     e.preventDefault();
     const sel = items.find(li => li.getAttribute('aria-selected') === 'true') || items[0];
-    if (sel?.dataset.pick) seatGuest(sel.dataset.pick); else if (sel?.dataset.create) createAndSeat();
+    if (sel?.dataset.pick) seatGuest(sel.dataset.pick); else if (sel?.dataset.create) createAndSeat(); else if (sel?.dataset.confirm) sel.click();
   } else if (e.key === 'Escape'){
     openCombo = null; comboQuery = ''; render();
   }
@@ -1052,6 +1125,7 @@ document.addEventListener('keydown', e => {
 
 /* ============ Start ============ */
 ensureMladenacki();
+if (!sheetUrl) migrateDolazi();
 render();
 pull();
 </script>
